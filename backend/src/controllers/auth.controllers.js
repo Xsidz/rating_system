@@ -3,10 +3,10 @@ import { pool } from "../db/db.js";
 import { generateToken } from "../lib/utils.js";
 
 export const signup = async (req, res) => {
-  const { fullName, email, password, address } = req.body;
+  const { name, email, password, address } = req.body;
 
   try {
-    if (!fullName || !email || !password || !address) {
+    if (!name || !email || !password || !address) {
       return res.status(400).json({ message: "All fields are required" });
     }
 
@@ -32,7 +32,7 @@ export const signup = async (req, res) => {
 
     const [result] = await pool.query(
       "INSERT INTO users (name, email, password_hash, address, role) VALUES (?, ?, ?, ?, 'user')",
-      [fullName, email, hashedPass, address]
+      [name, email, hashedPass, address]
     );
 
     const [rows] = await pool.query(
@@ -71,7 +71,7 @@ export const login = async (req, res) => {
     generateToken(user.id, res);
     return res.status(200).json({
       id: user.id,
-      fullName: user.name,
+      name: user.name,
       email: user.email,
       address: user.address,
       role: user.role,
@@ -82,3 +82,17 @@ export const login = async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 };
+
+
+export const logout = (req,res)=>{
+   try {
+    res.cookie("jwt", "", {
+      maxAge: 0
+    })
+
+    res.status(200).json({message :"LoggedOut Successfully"})
+  } catch (error) {
+    console.log("Error in the log out controller : ", error.message)
+    res.status(500).json({message: " Internal Server Error"})
+  }
+}

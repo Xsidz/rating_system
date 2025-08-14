@@ -75,7 +75,7 @@ export const login = async (req, res) => {
       email: user.email,
       address: user.address,
       role: user.role,
-      created_at : user.created_at
+      created_at: user.created_at,
     });
   } catch (error) {
     console.log("Error in the Login controller:", error.message);

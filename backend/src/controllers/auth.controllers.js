@@ -47,7 +47,7 @@ export const signup = async (req, res) => {
     return res.status(200).json(newUser);
   } catch (error) {
     console.error("Error in the SignUp controller:", error.message);
-    res.status(500).json({ message: error.message });
+    return res.status(500).json({ message: error.message });
   }
 };
 
@@ -79,20 +79,65 @@ export const login = async (req, res) => {
     });
   } catch (error) {
     console.log("Error in the Login controller:", error.message);
-    res.status(500).json({ message: "Internal server error" });
+    return res.status(500).json({ message: "Internal server error" });
   }
 };
 
-
-export const logout = (req,res)=>{
-   try {
+export const logout = (req, res) => {
+  try {
     res.cookie("jwt", "", {
-      maxAge: 0
-    })
+      maxAge: 0,
+    });
 
-    res.status(200).json({message :"LoggedOut Successfully"})
+    return res.status(200).json({ message: "LoggedOut Successfully" });
   } catch (error) {
-    console.log("Error in the log out controller : ", error.message)
-    res.status(500).json({message: " Internal Server Error"})
+    console.log("Error in the log out controller : ", error.message);
+    return res.status(500).json({ message: " Internal Server Error" });
   }
-}
+};
+
+export const updatePassword = async (req, res) => {
+  console.log("updatePassword route hit for user:", req.user?.id);
+  const { currentPassword, newPassword } = req.body;
+  try {
+    const [row] = await pool.query(
+      `SELECT password_hash FROM users where id = ?`,
+      [req.user.id]
+    );
+    console.log("DB query done");
+
+    if (row.length == 0) {
+      return res.status(404).json({ message: "User not found!!" });
+    }
+
+    const user = row[0];
+    const doPasswordMatch = await bcrypt.compare(
+      currentPassword,
+      user.password_hash
+    );
+    console.log("Password match result:", doPasswordMatch);
+
+    if (!doPasswordMatch) {
+      return res.status(400).json({ message: "Current password is incorrect" });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const newHashed = await bcrypt.hash(newPassword, salt);
+    await pool.query("UPDATE users SET password_hash = ? WHERE id = ?", [
+      newHashed,
+      req.user.id,
+    ]);
+    console.log("Password updated in DB");
+
+    res.clearCookie("jwt");
+    console.log("Cookie cleared");
+
+    return res
+      .status(200)
+      .json({ message: "Password updated successfully. Please log in again." });
+  } catch (error) {
+    console.log("Error in the Update Password :", error);
+    return res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
